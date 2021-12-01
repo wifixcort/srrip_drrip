@@ -31,6 +31,14 @@ int getVictimLIFO(struct cacheBlock tags[], int index, int assoc);
 void updateFIFO(struct cacheBlock tags[], int index, int way, int assoc);
 int getVictimFIFO(struct cacheBlock tags[], int index, int assoc);
 
+//Funciones para la cache SRRIP
+void updateSRRIP(struct cacheBlock tags[], int index, int way, int assoc);
+int getVictimSRRIP(struct cacheBlock tags[], int index, int assoc);
+
+//Funciones para la cache DRRIP
+//void updateRRIP(struct cacheBlock tags[], int index, int way, int assoc);
+//int getVictimDRRIP(struct cacheBlock tags[], int index, int assoc);
+
 int main(int argc, char** argv)
 {
 	int cacheSize;
@@ -77,6 +85,8 @@ int main(int argc, char** argv)
 	struct cacheBlock *tagsLFU=new cacheBlock[numTags];
 	struct cacheBlock *tagsLIFO=new cacheBlock[numTags];
 	struct cacheBlock *tagsFIFO=new cacheBlock[numTags];
+	struct cacheBlock *tagsSRRIP=new cacheBlock[numTags];
+	//	struct cacheBlock *tagsDRRIP=new cacheBlock[numTags];		
 
 	for(int i=0; i<numSets; i++){
 //		setsLRU[i]=0x00010203;
@@ -100,6 +110,17 @@ int main(int argc, char** argv)
 			tagsFIFO[(i*assoc)+j].tag=0;
 			tagsFIFO[(i*assoc)+j].dirtyBit=0;
 			tagsFIFO[(i*assoc)+j].replacement=0;
+
+			tagsSRRIP[(i*assoc)+j].valid=0;//Verificar
+			tagsSRRIP[(i*assoc)+j].tag=0;//Verificar
+			tagsSRRIP[(i*assoc)+j].dirtyBit=0;//Verificar
+			tagsSRRIP[(i*assoc)+j].replacement=j;//Revisar este valor con cuidado y poner según el papaer
+
+			//tagsDRRIP[(i*assoc)+j].valid=0;//Verificar
+			//tagsDRRIP[(i*assoc)+j].tag=0;//Verificar
+			//tagsDRRIP[(i*assoc)+j].dirtyBit=0;//Verificar
+			//tagsDRRIP[(i*assoc)+j].replacement=j;//Revisar este valor con cuidado y poner según el papaer
+			
 		}
 	}
 	std::cout<<"Inicializados los array"<<std::endl;
@@ -109,6 +130,8 @@ int main(int argc, char** argv)
 	int missesLFU=0;
 	int missesLIFO=0;
 	int missesFIFO=0;
+	int missesSRRIP=0;
+	//	int missesDRRIP=0;		
 
 
     //Create an input file stream
@@ -166,6 +189,26 @@ int main(int argc, char** argv)
 			missesFIFO+=1;
 			updateFIFO(tagsFIFO, index, way, assoc);
 		}
+
+//Actualizo la SRRIP
+		if(isHit(tagsSRRIP, index, tag, assoc, &way)==false)
+		{
+			way = getVictimSRRIP(tagsSRRIP, index, assoc);
+			tagsSRRIP[(index*assoc)+way].tag=tag;
+			tagsSRRIP[(index*assoc)+way].valid=true;
+			missesSRRIP+=1;
+		}
+		updateSRRIP(tagsSRRIP, index, way, assoc);
+
+//Actualizo la DRRIP
+//		if(isHit(tagsDRRIP, index, tag, assoc, &way)==false)
+		  //		{
+		  //		  way = getVictimDRRIP(tagsDRRIP, index, assoc);
+		  //			tagsDRRIP[(index*assoc)+way].tag=tag;
+			//			tagsDRRIP[(index*assoc)+way].valid=true;
+			//			missesDRRIP+=1;
+			//		}
+		//		updateDRRIP(tagsDRRIP, index, way, assoc);
     }
     //Close the file stream
     in.close();
@@ -173,12 +216,16 @@ int main(int argc, char** argv)
 	std::cout<<"Resultados LRU ideal\n"<<"Accesses= "<<accesses<<" Misses= "<<missesLRU<<" Miss rate= "<<(float)missesLRU/accesses<<std::endl;
 	std::cout<<"Resultados LFU\n"<<"Accesses= "<<accesses<<" Misses= "<<missesLFU<<" Miss rate= "<<(float)missesLFU/accesses<<std::endl;
 	std::cout<<"Resultados LIFO\n"<<"Accesses= "<<accesses<<" Misses= "<<missesLIFO<<" Miss rate= "<<(float)missesLIFO/accesses<<std::endl;
-	std::cout<<"Resultados FIFO\n"<<"Accesses= "<<accesses<<" Misses= "<<missesFIFO<<" Miss rate= "<<(float)missesFIFO/accesses<<std::endl;	
+	std::cout<<"Resultados FIFO\n"<<"Accesses= "<<accesses<<" Misses= "<<missesFIFO<<" Miss rate= "<<(float)missesFIFO/accesses<<std::endl;
+	std::cout<<"Resultados SRRIP\n"<<"Accesses= "<<accesses<<" Misses= "<<missesSRRIP<<" Miss rate= "<<(float)missesSRRIP/accesses<<std::endl;
+	//	std::cout<<"Resultados DRRIP\n"<<"Accesses= "<<accesses<<" Misses= "<<missesDRRIP<<" Miss rate= "<<(float)missesDRRIP/accesses<<std::endl;			
 
 	delete [] tagsLRU;
 	delete [] tagsLFU;
 	delete [] tagsLIFO;
 	delete [] tagsFIFO;
+	delete [] tagsSRRIP;
+	//	delete [] tagsDRRIP;
 
 	return true;
 }
@@ -310,3 +357,64 @@ int getVictimFIFO(struct cacheBlock tags[], int index, int assoc){
 	}
 	return lower;
 }
+
+//========================================================================
+// Modificar todo éste código para convertirlo en SRRIP, se copió del LRU
+//SRRIP
+void updateSRRIP(struct cacheBlock tags[], int index, int way, int assoc){
+	for(int i=0; i<assoc;i++)
+	{
+		if(tags[(index*assoc)+i].replacement<(assoc-1))
+			tags[(index*assoc)+i].replacement+=1;
+	}
+	tags[(index*assoc)+way].replacement=0;
+}
+
+int getVictimSRRIP(struct cacheBlock tags[], int index, int assoc){
+	//check empty way
+	int i;
+	for(i=0; i<assoc;i++)
+	{
+		if(tags[(index*assoc)+i].valid==false)
+		{
+			return i;
+		}
+	}
+	//look for the victim way
+	for(i=0; i<assoc;i++)
+	{
+		if(tags[(index*assoc)+i].replacement==(assoc-1))
+			return i;
+	}
+	return i;
+}
+
+//DRRIP
+//void updateDRRIP(struct cacheBlock tags[], int index, int way, int assoc){
+//	for(int i=0; i<assoc;i++)
+//	{
+//		if(tags[(index*assoc)+i].replacement<(assoc-1))
+//			tags[(index*assoc)+i].replacement+=1;
+//	}
+//	tags[(index*assoc)+way].replacement=0;
+//}
+
+//int getVictimDRRIP(struct cacheBlock tags[], int index, int assoc){
+	//check empty way
+//	int i;
+//	for(i=0; i<assoc;i++)
+//	{
+//		if(tags[(index*assoc)+i].valid==false)
+//		{
+//			return i;
+//		}
+//	}
+//	//look for the victim way
+//	for(i=0; i<assoc;i++)
+//	{
+//		if(tags[(index*assoc)+i].replacement==(assoc-1))
+//			return i;
+//	}
+//	return i;
+//}
+
