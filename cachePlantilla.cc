@@ -114,7 +114,7 @@ int main(int argc, char** argv)
 			tagsSRRIP[(i*assoc)+j].valid=0;//Verificar
 			tagsSRRIP[(i*assoc)+j].tag=0;//Verificar
 			tagsSRRIP[(i*assoc)+j].dirtyBit=0;//Verificar
-			tagsSRRIP[(i*assoc)+j].replacement=j;//Revisar este valor con cuidado y poner según el papaer
+			tagsSRRIP[(i*assoc)+j].replacement=blockSize-1;//Corresponde al valor de RRPV = 2^M -1; M = ln(blockSize)/ln(2) y 2^M = blockSize
 
 			//tagsDRRIP[(i*assoc)+j].valid=0;//Verificar
 			//tagsDRRIP[(i*assoc)+j].tag=0;//Verificar
