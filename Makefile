@@ -37,7 +37,7 @@ $(PROG): $(OBJS)
 # archivo1.o: archivo1.c archivo1.h archivo2.h
 #	$(CC) -o $@ $< $(CFLAGS)
 
-cache.o: cachePlantilla.cc
+cache.o: cache.cc
 	$(CC) -o $@ $< $(CFLAGS)
 
 # Los target PHONY son targets que realizan funciones miscelaneas, no 
