@@ -32,7 +32,8 @@ void updateFIFO(struct cacheBlock tags[], int index, int way, int assoc);
 int getVictimFIFO(struct cacheBlock tags[], int index, int assoc);
 
 //Funciones para la cache SRRIP
-void updateSRRIP(struct cacheBlock tags[], int index, int way, int assoc);
+void updateSRRIP(struct cacheBlock tags[], int index, int way, int assoc, int RRPV = 0);
+//void updateSRRIP(struct cacheBlock tags[], int index, int way, int assoc);
 int getVictimSRRIP(struct cacheBlock tags[], int index, int assoc);
 
 //Funciones para la cache DRRIP
@@ -114,7 +115,7 @@ int main(int argc, char** argv)
 			tagsSRRIP[(i*assoc)+j].valid=0;//Verificar
 			tagsSRRIP[(i*assoc)+j].tag=0;//Verificar
 			tagsSRRIP[(i*assoc)+j].dirtyBit=0;//Verificar
-			tagsSRRIP[(i*assoc)+j].replacement=blockSize-1;//Corresponde al valor de RRPV = 2^M -1; M = ln(blockSize)/ln(2) y 2^M = blockSize
+			tagsSRRIP[(i*assoc)+j].replacement=assoc-1;//Corresponde al valor de RRPV = 2^M -1; M = ln(blockSize)/ln(2) y 2^M = blockSize
 
 			//tagsDRRIP[(i*assoc)+j].valid=0;//Verificar
 			//tagsDRRIP[(i*assoc)+j].tag=0;//Verificar
@@ -197,8 +198,11 @@ int main(int argc, char** argv)
 			tagsSRRIP[(index*assoc)+way].tag=tag;
 			tagsSRRIP[(index*assoc)+way].valid=true;
 			missesSRRIP+=1;
+			updateSRRIP(tagsSRRIP, index, way, assoc, assoc-2);
+		}else{
+		  updateSRRIP(tagsSRRIP, index, way, assoc);		  
 		}
-		updateSRRIP(tagsSRRIP, index, way, assoc);
+
 
 //Actualizo la DRRIP
 //		if(isHit(tagsDRRIP, index, tag, assoc, &way)==false)
@@ -361,13 +365,13 @@ int getVictimFIFO(struct cacheBlock tags[], int index, int assoc){
 //========================================================================
 // Modificar todo éste código para convertirlo en SRRIP, se copió del LRU
 //SRRIP
-void updateSRRIP(struct cacheBlock tags[], int index, int way, int assoc){
-	for(int i=0; i<assoc;i++)
-	{
-		if(tags[(index*assoc)+i].replacement<(assoc-1))
-			tags[(index*assoc)+i].replacement+=1;
-	}
-	tags[(index*assoc)+way].replacement=0;
+void updateSRRIP(struct cacheBlock tags[], int index, int way, int assoc, int RRPV){
+  //	for(int i=0; i<assoc;i++)
+  //{
+  //	if(tags[(index*assoc)+i].replacement<(assoc-1))
+  //		tags[(index*assoc)+i].replacement+=1;
+  //}
+  tags[(index*assoc)+way].replacement= RRPV;
 }
 
 int getVictimSRRIP(struct cacheBlock tags[], int index, int assoc){
@@ -381,12 +385,20 @@ int getVictimSRRIP(struct cacheBlock tags[], int index, int assoc){
 		}
 	}
 	//look for the victim way
-	for(i=0; i<assoc;i++)
-	{
+	/*
+	  1.Primero busco el primer 3 y retorno
+	  2.si no lo encuentro, aumento todos los RRPV en 1
+	  3.vuelvo a (1)
+	 */
+	while(1){
+	  for(i=0; i<assoc ;i++) {
 		if(tags[(index*assoc)+i].replacement==(assoc-1))
-			return i;
+		  return i;
+	  }
+	  for(i=0; i<assoc ;i++) {
+		tags[(index*assoc)+i].replacement += 1;
+	  }	  
 	}
-	return i;
 }
 
 //DRRIP
