@@ -115,7 +115,7 @@ int main(int argc, char** argv)
 			tagsSRRIP[(i*assoc)+j].valid=0;//Verificar
 			tagsSRRIP[(i*assoc)+j].tag=0;//Verificar
 			tagsSRRIP[(i*assoc)+j].dirtyBit=0;//Verificar
-			tagsSRRIP[(i*assoc)+j].replacement=assoc-1;//Corresponde al valor de RRPV = 2^M -1; M = ln(blockSize)/ln(2) y 2^M = blockSize
+			tagsSRRIP[(i*assoc)+j].replacement=3;//Corresponde al valor de RRPV = 2^M -1;
 
 			//tagsDRRIP[(i*assoc)+j].valid=0;//Verificar
 			//tagsDRRIP[(i*assoc)+j].tag=0;//Verificar
@@ -198,7 +198,7 @@ int main(int argc, char** argv)
 			tagsSRRIP[(index*assoc)+way].tag=tag;
 			tagsSRRIP[(index*assoc)+way].valid=true;
 			missesSRRIP+=1;
-			updateSRRIP(tagsSRRIP, index, way, assoc, assoc-2);
+			updateSRRIP(tagsSRRIP, index, way, assoc, 2);
 		}else{
 		  updateSRRIP(tagsSRRIP, index, way, assoc);		  
 		}
@@ -392,8 +392,9 @@ int getVictimSRRIP(struct cacheBlock tags[], int index, int assoc){
 	 */
 	while(1){
 	  for(i=0; i<assoc ;i++) {
-		if(tags[(index*assoc)+i].replacement==(assoc-1))
-		  return i;
+		if(tags[(index*assoc)+i].replacement == 3 ){
+		  return i;		  
+		}
 	  }
 	  for(i=0; i<assoc ;i++) {
 		tags[(index*assoc)+i].replacement += 1;
