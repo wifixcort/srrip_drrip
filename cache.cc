@@ -33,12 +33,12 @@ int getVictimFIFO(struct cacheBlock tags[], int index, int assoc);
 
 //Funciones para la cache SRRIP
 void updateSRRIP(struct cacheBlock tags[], int index, int way, int assoc, int RRPV = 0);
-//void updateSRRIP(struct cacheBlock tags[], int index, int way, int assoc);
 int getVictimSRRIP(struct cacheBlock tags[], int index, int assoc);
 
-//Funciones para la cache DRRIP
-//void updateRRIP(struct cacheBlock tags[], int index, int way, int assoc);
-//int getVictimDRRIP(struct cacheBlock tags[], int index, int assoc);
+
+//Funciones para la cache SRRIP
+void updateBRRIP(struct cacheBlock tags[], int index, int way, int assoc, int RRPV = 0);
+int getVictimBRRIP(struct cacheBlock tags[], int index, int assoc);
 
 int main(int argc, char** argv)
 {
@@ -87,7 +87,7 @@ int main(int argc, char** argv)
 	struct cacheBlock *tagsLIFO=new cacheBlock[numTags];
 	struct cacheBlock *tagsFIFO=new cacheBlock[numTags];
 	struct cacheBlock *tagsSRRIP=new cacheBlock[numTags];
-	//	struct cacheBlock *tagsDRRIP=new cacheBlock[numTags];		
+	struct cacheBlock *tagsBRRIP=new cacheBlock[numTags];		
 
 	for(int i=0; i<numSets; i++){
 //		setsLRU[i]=0x00010203;
@@ -112,15 +112,16 @@ int main(int argc, char** argv)
 			tagsFIFO[(i*assoc)+j].dirtyBit=0;
 			tagsFIFO[(i*assoc)+j].replacement=0;
 
-			tagsSRRIP[(i*assoc)+j].valid=0;//Verificar
-			tagsSRRIP[(i*assoc)+j].tag=0;//Verificar
-			tagsSRRIP[(i*assoc)+j].dirtyBit=0;//Verificar
-			tagsSRRIP[(i*assoc)+j].replacement=3;//Corresponde al valor de RRPV = 2^M -1;
+			tagsSRRIP[(i*assoc)+j].valid=0;
+			tagsSRRIP[(i*assoc)+j].tag=0;
+			tagsSRRIP[(i*assoc)+j].dirtyBit=0;
+			tagsSRRIP[(i*assoc)+j].replacement = 3;//Corresponde al valor de RRPV = 2^M - 1;
 
-			//tagsDRRIP[(i*assoc)+j].valid=0;//Verificar
-			//tagsDRRIP[(i*assoc)+j].tag=0;//Verificar
-			//tagsDRRIP[(i*assoc)+j].dirtyBit=0;//Verificar
-			//tagsDRRIP[(i*assoc)+j].replacement=j;//Revisar este valor con cuidado y poner según el papaer
+			tagsBRRIP[(i*assoc)+j].valid=0;
+			tagsBRRIP[(i*assoc)+j].tag=0;
+			tagsBRRIP[(i*assoc)+j].dirtyBit=0;
+			tagsBRRIP[(i*assoc)+j].replacement = 3;//Corresponde al valor de RRPV = 2^M - 1;
+
 			
 		}
 	}
@@ -132,7 +133,7 @@ int main(int argc, char** argv)
 	int missesLIFO=0;
 	int missesFIFO=0;
 	int missesSRRIP=0;
-	//	int missesDRRIP=0;		
+	int missesBRRIP=0;		
 
 
     //Create an input file stream
@@ -200,19 +201,21 @@ int main(int argc, char** argv)
 			missesSRRIP+=1;
 			updateSRRIP(tagsSRRIP, index, way, assoc, 2);
 		}else{
-		  updateSRRIP(tagsSRRIP, index, way, assoc);		  
+		  updateSRRIP(tagsSRRIP, index, way, assoc, 0);
 		}
 
-
-//Actualizo la DRRIP
-//		if(isHit(tagsDRRIP, index, tag, assoc, &way)==false)
-		  //		{
-		  //		  way = getVictimDRRIP(tagsDRRIP, index, assoc);
-		  //			tagsDRRIP[(index*assoc)+way].tag=tag;
-			//			tagsDRRIP[(index*assoc)+way].valid=true;
-			//			missesDRRIP+=1;
-			//		}
-		//		updateDRRIP(tagsDRRIP, index, way, assoc);
+//Actualizo la BRRIP
+		if(isHit(tagsBRRIP, index, tag, assoc, &way)==false)
+		{
+			way = getVictimBRRIP(tagsBRRIP, index, assoc);
+			tagsBRRIP[(index*assoc)+way].tag=tag;
+			tagsBRRIP[(index*assoc)+way].valid=true;
+			missesBRRIP+=1;
+			updateBRRIP(tagsBRRIP, index, way, assoc, 2);
+		}else{
+		  updateBRRIP(tagsBRRIP, index, way, assoc, 2);
+		}
+		
     }
     //Close the file stream
     in.close();
@@ -222,14 +225,15 @@ int main(int argc, char** argv)
 	std::cout<<"Resultados LIFO\n"<<"Accesses= "<<accesses<<" Misses= "<<missesLIFO<<" Miss rate= "<<(float)missesLIFO/accesses<<std::endl;
 	std::cout<<"Resultados FIFO\n"<<"Accesses= "<<accesses<<" Misses= "<<missesFIFO<<" Miss rate= "<<(float)missesFIFO/accesses<<std::endl;
 	std::cout<<"Resultados SRRIP\n"<<"Accesses= "<<accesses<<" Misses= "<<missesSRRIP<<" Miss rate= "<<(float)missesSRRIP/accesses<<std::endl;
-	//	std::cout<<"Resultados DRRIP\n"<<"Accesses= "<<accesses<<" Misses= "<<missesDRRIP<<" Miss rate= "<<(float)missesDRRIP/accesses<<std::endl;			
+	std::cout<<"Resultados BRRIP\n"<<"Accesses= "<<accesses<<" Misses= "<<missesBRRIP<<" Miss rate= "<<(float)missesBRRIP/accesses<<std::endl; //Borrar para aplicar DRRIP
+
 
 	delete [] tagsLRU;
 	delete [] tagsLFU;
 	delete [] tagsLIFO;
 	delete [] tagsFIFO;
 	delete [] tagsSRRIP;
-	//	delete [] tagsDRRIP;
+	delete [] tagsBRRIP;
 
 	return true;
 }
@@ -363,14 +367,7 @@ int getVictimFIFO(struct cacheBlock tags[], int index, int assoc){
 }
 
 //========================================================================
-// Modificar todo éste código para convertirlo en SRRIP, se copió del LRU
-//SRRIP
 void updateSRRIP(struct cacheBlock tags[], int index, int way, int assoc, int RRPV){
-  //	for(int i=0; i<assoc;i++)
-  //{
-  //	if(tags[(index*assoc)+i].replacement<(assoc-1))
-  //		tags[(index*assoc)+i].replacement+=1;
-  //}
   tags[(index*assoc)+way].replacement= RRPV;
 }
 
@@ -402,32 +399,35 @@ int getVictimSRRIP(struct cacheBlock tags[], int index, int assoc){
 	}
 }
 
-//DRRIP
-//void updateDRRIP(struct cacheBlock tags[], int index, int way, int assoc){
-//	for(int i=0; i<assoc;i++)
-//	{
-//		if(tags[(index*assoc)+i].replacement<(assoc-1))
-//			tags[(index*assoc)+i].replacement+=1;
-//	}
-//	tags[(index*assoc)+way].replacement=0;
-//}
+void updateBRRIP(struct cacheBlock tags[], int index, int way, int assoc, int RRPV){
+  tags[(index*assoc)+way].replacement= RRPV;
+}
 
-//int getVictimDRRIP(struct cacheBlock tags[], int index, int assoc){
+int getVictimBRRIP(struct cacheBlock tags[], int index, int assoc){
 	//check empty way
-//	int i;
-//	for(i=0; i<assoc;i++)
-//	{
-//		if(tags[(index*assoc)+i].valid==false)
-//		{
-//			return i;
-//		}
-//	}
-//	//look for the victim way
-//	for(i=0; i<assoc;i++)
-//	{
-//		if(tags[(index*assoc)+i].replacement==(assoc-1))
-//			return i;
-//	}
-//	return i;
-//}
+	int i;
+	for(i=0; i<assoc;i++)
+	{
+		if(tags[(index*assoc)+i].valid==false)
+		{
+			return i;
+		}
+	}
+	//look for the victim way
+	/*
+	  1.Primero busco el primer 2 y retorno
+	  2.si no lo encuentro, aumento todos los RRPV en 1
+	  3.vuelvo a (1)
+	 */
+	while(1){
+	  for(i=0; i<assoc ;i++) {
+		if(tags[(index*assoc)+i].replacement == 3){
+		  return i;		  
+		}
+	  }
+	  for(i=0; i<assoc ;i++) {
+		tags[(index*assoc)+i].replacement += 1;
+	  }	  
+	}
+}
 
